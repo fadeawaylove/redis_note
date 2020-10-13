@@ -1,3 +1,7 @@
+
+## 记录阅读redis6.0源码的笔记
+
+
 This README is just a fast *quick start* document. You can find more detailed documentation at [redis.io](https://redis.io).
 
 What is Redis?
