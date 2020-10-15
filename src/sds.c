@@ -90,33 +90,36 @@ static inline char sdsReqType(size_t string_size) {
 // 创建一个新的sds字符串
 sds sdsnewlen(const void *init, size_t initlen) {
     // init指向字符串开头的指针，initlen字符串的长度
+    // (sds)init 就是当前字符串的值
     void *sh;
     sds s;
     char type = sdsReqType(initlen);
     /* Empty strings are usually created in order to append. Use type 8
      * since type 5 is not good at this. */
     if (type == SDS_TYPE_5 && initlen == 0) type = SDS_TYPE_8;
-    int hdrlen = sdsHdrSize(type);
-    unsigned char *fp; /* flags pointer. */
+    int hdrlen = sdsHdrSize(type);  // 根据类型返回sds-header的长度（注意结构体长度的计算）
+    unsigned char *fp; /* flags pointer. */  // 定义flags指针
 
-    sh = s_malloc(hdrlen+initlen+1);
+    sh = s_malloc(hdrlen+initlen+1);  // 分配空间为sds-header的长度 + 字符串长度 + 1（末尾\0）
     if (sh == NULL) return NULL;
     if (init==SDS_NOINIT)
         init = NULL;
     else if (!init)
         memset(sh, 0, hdrlen+initlen+1);
-    s = (char*)sh+hdrlen;
-    fp = ((unsigned char*)s)-1;
-    switch(type) {
+    s = (char*)sh+hdrlen;  // s地址为 当前sh地址 + sds-header长度 （其实s就是sds中的buf）
+    fp = ((unsigned char*)s)-1;  // flags指针的地址是s地址减1（也就是在buf前面）
+    switch(type) {  // 根据sds类型创建字符串
         case SDS_TYPE_5: {
-            *fp = type | (initlen << SDS_TYPE_BITS);
+            // initlen << SDS_TYPE_BITS 高5位表示未使用的`bit`位
+            // 剩下的type自然就在低3位
+            *fp = type | (initlen << SDS_TYPE_BITS);  // |位运算，有真为真
             break;
         }
         case SDS_TYPE_8: {
-            SDS_HDR_VAR(8,s);
-            sh->len = initlen;
-            sh->alloc = initlen;
-            *fp = type;
+            SDS_HDR_VAR(8,s);  // 创建结构体sds-header
+            sh->len = initlen;  // sds-header字符串的长度
+            sh->alloc = initlen;  // sds-header表示的redis-string容量大小
+            *fp = type;  // 低3位表示了类型，此时高5为为0（容量全被占满）
             break;
         }
         case SDS_TYPE_16: {
@@ -141,9 +144,9 @@ sds sdsnewlen(const void *init, size_t initlen) {
             break;
         }
     }
-    if (initlen && init)
-        memcpy(s, init, initlen);
-    s[initlen] = '\0';
+    if (initlen && init)  // && 就是与、并且
+        memcpy(s, init, initlen);  // 从src（init）向des（s）复制n(initlen)字节
+    s[initlen] = '\0';  // 字符串最后一位加上'\0'
     return s;
 }
 
