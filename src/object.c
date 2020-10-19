@@ -85,23 +85,24 @@ robj *createEmbeddedStringObject(const char *ptr, size_t len) {
     robj *o = zmalloc(sizeof(robj)+sizeof(struct sdshdr8)+len+1);
     struct sdshdr8 *sh = (void*)(o+1);
 
-    o->type = OBJ_STRING;
-    o->encoding = OBJ_ENCODING_EMBSTR;
-    o->ptr = sh+1;
-    o->refcount = 1;
+    // 给redis对象结构体赋值
+    o->type = OBJ_STRING;  // 类型是string
+    o->encoding = OBJ_ENCODING_EMBSTR;  // 编码方式是Embedded
+    o->ptr = sh+1;  // 指向的地址（实际上是dsd-header）
+    o->refcount = 1;  // 引用计数为1
     if (server.maxmemory_policy & MAXMEMORY_FLAG_LFU) {
         o->lru = (LFUGetTimeInMinutes()<<8) | LFU_INIT_VAL;
     } else {
         o->lru = LRU_CLOCK();
     }
-
-    sh->len = len;
-    sh->alloc = len;
-    sh->flags = SDS_TYPE_8;
+    // sds-header结构体赋值
+    sh->len = len;  // 字符串长度
+    sh->alloc = len;  // 字符串的总容量
+    sh->flags = SDS_TYPE_8;  // 直接设置类型为sdshdr8
     if (ptr == SDS_NOINIT)
-        sh->buf[len] = '\0';
+        sh->buf[len] = '\0';  
     else if (ptr) {
-        memcpy(sh->buf,ptr,len);
+        memcpy(sh->buf,ptr,len);  // 字符串的值赋值
         sh->buf[len] = '\0';
     } else {
         memset(sh->buf,0,len+1);
